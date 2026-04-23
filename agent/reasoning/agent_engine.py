@@ -1,84 +1,91 @@
 import google.generativeai as genai
 import json
 import os
+import re
 from dotenv import load_dotenv
-from tenacity import retry, stop_after_attempt, retry_if_exception_type
+from tenacity import retry, stop_after_attempt
 from agent.tools.tool_router import route_tool
 from loguru import logger
 
 load_dotenv()
 
-api_key = os.getenv("GEMINI_API_KEY")
-if not api_key:
-    raise ValueError("GEMINI_API_KEY not found")
-
-genai.configure(api_key=api_key)
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
 model = genai.GenerativeModel("gemini-2.5-flash")
 
-def clean_json(text: str):
-    try:
-        text = text.strip()
-        if text.startswith("```"):
-            text = text.split("```")[1]
-        return json.loads(text)
-    except Exception as e:
-        logger.error(f"JSON parse failed: {text}")
-        return None
 
-@retry(
-    stop=stop_after_attempt(3),
-    retry=retry_if_exception_type(Exception)
-)
+def extract_json(text: str):
+    try:
+        return json.loads(text)
+    except:
+        pass
+
+    try:
+        match = re.search(r'\{.*\}', text, re.DOTALL)
+        if match:
+            return json.loads(match.group())
+    except:
+        pass
+
+    return None
+
+
+def fallback_parser(text: str):
+    text = text.lower()
+
+    if "book" in text:
+        return {
+            "tool": "book_appointment",
+            "arguments": {
+                "doctor": "general",
+                "date": "tomorrow",
+                "time": "10:00"
+            }
+        }
+
+    return None
+
+
+@retry(stop=stop_after_attempt(2)) 
 def run_agent(text, context):
 
     prompt = f"""
-You are a healthcare assistant.
+You are a strict JSON API.
 
-Available tools:
-- book_appointment
-- cancel_appointment
-- reschedule_appointment
-- check_availability
+Return ONLY JSON. No text.
 
-IMPORTANT:
-- Always return valid JSON
-- Do NOT add explanations
+{{
+  "tool": "",
+  "arguments": {{
+    "doctor": "",
+    "date": "",
+    "time": ""
+  }}
+}}
 
 User: {text}
-
-Return STRICT JSON:
-{{
- "tool": "",
- "arguments": {{}}
-}}
 """
 
     try:
         response = model.generate_content(prompt)
-        raw_output = response.text
+        raw = response.text
 
-        parsed = clean_json(raw_output)
+        parsed = extract_json(raw)
+
+        if not parsed:
+            logger.warning("LLM JSON failed, using fallback")
+            parsed = fallback_parser(text)
 
         if not parsed:
             return {"response": "Sorry, I couldn't understand that."}
 
-        if "tool" not in parsed or "arguments" not in parsed:
-            return {"response": "Invalid response from AI"}
-
-        try:
-            tool_result = route_tool(parsed)
-        except Exception as e:
-            logger.error(f"Tool execution error: {e}")
-            return {"response": "Error executing action"}
+        result = route_tool(parsed)
 
         return {
-            "response": tool_result.get("message", "Done"),
+            "response": result.get("message", "Done"),
             "trace": parsed
         }
 
     except Exception as e:
-        logger.error(f"LLM Error: {e}")
-        return {
-            "response": "I'm having trouble processing that request"
-        }
+        logger.error(f"Agent Error: {e}")
+        return {"response": "System error occurred"}
