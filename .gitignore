@@ -1,0 +1,55 @@
+# Python
+pycache/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+.env/
+ENV/
+env/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Logs & runtime files
+*.log
+*.pid
+*.seed
+
+# Database
+*.db
+*.sqlite3
+
+# Cache / testing
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# IDE / Editor
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker
+docker-compose.override.yml
+
+# Redis
+dump.rdb
+appendonly.aof
+
+# PostgreSQL (local data folders if any)
+pgdata/
+postgres_data/
