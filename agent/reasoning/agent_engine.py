@@ -2,10 +2,19 @@ import google.generativeai as genai
 import json
 import os
 from tenacity import retry, stop_after_attempt
+from dotenv import load_dotenv
 from agent.tools.tool_router import route_tool
 
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+load_dotenv()
+
+api_key = os.getenv("GEMINI_API_KEY")
+if not api_key:
+    raise ValueError("GEMINI_API_KEY not found in environment")
+
+genai.configure(api_key=api_key)
+
 model = genai.GenerativeModel("gemini-1.5-flash")
+
 
 @retry(stop=stop_after_attempt(3))
 def run_agent(text, context):
@@ -21,7 +30,7 @@ Available tools:
 
 User: {text}
 
-Return JSON:
+Return STRICT JSON:
 {{
  "tool": "",
  "arguments": {{}}
