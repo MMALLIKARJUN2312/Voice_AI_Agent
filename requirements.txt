@@ -2,7 +2,12 @@ fastapi
 uvicorn
 redis
 psycopg2-binary
+sqlalchemy
 python-dotenv
 google-generativeai
 langdetect
+openai-whisper
+pydub
+websockets
 httpx
+loguru
