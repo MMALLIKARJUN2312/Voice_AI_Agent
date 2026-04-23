@@ -1,30 +1,40 @@
 import google.generativeai as genai
-import os
 import json
-from agent.prompt.system_prompt import SYSTEM_PROMPT
+import os
+from tenacity import retry, stop_after_attempt
 from agent.tools.tool_router import route_tool
 
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-
 model = genai.GenerativeModel("gemini-1.5-flash")
 
-def run_agent(text, lang):
+@retry(stop=stop_after_attempt(3))
+def run_agent(text, context):
 
-    prompt = f"{SYSTEM_PROMPT}\nUser: {text}"
+    prompt = f"""
+You are a healthcare assistant.
+
+Available tools:
+- book_appointment
+- cancel_appointment
+- reschedule_appointment
+- check_availability
+
+User: {text}
+
+Return JSON:
+{{
+ "tool": "",
+ "arguments": {{}}
+}}
+"""
 
     response = model.generate_content(prompt)
 
-    try:
-        parsed = json.loads(response.text)
-        result = route_tool(parsed)
+    parsed = json.loads(response.text)
 
-        return {
-            "response": result.get("message"),
-            "trace": parsed
-        }
+    tool_result = route_tool(parsed)
 
-    except:
-        return {
-            "response": "Sorry, I couldn't understand that.",
-            "trace": response.text
-        }
+    return {
+        "response": tool_result["message"],
+        "trace": parsed
+    }
