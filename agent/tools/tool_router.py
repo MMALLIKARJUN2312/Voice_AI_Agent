@@ -1,15 +1,14 @@
-from scheduler.appointment_engine.engine import (
-    book_appointment,
-    check_availability
-)
+from scheduler.appointment_engine.engine import book_appointment
 
 def route_tool(action):
     tool = action.get("tool")
+    args = action.get("arguments", {})
 
     if tool == "book_appointment":
-        return book_appointment(action["arguments"])
+        args.setdefault("doctor", "general")
+        args.setdefault("date", "tomorrow")
+        args.setdefault("time", "10:00")
 
-    if tool == "check_availability":
-        return check_availability(**action["arguments"])
+        return book_appointment(args)
 
     return {"message": "Invalid tool"}
