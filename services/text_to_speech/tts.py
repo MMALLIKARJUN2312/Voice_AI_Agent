@@ -1,2 +1,2 @@
-def synthesize(text, lang):
-    return f"[{lang}] {text}"
+def synthesize(text):
+    return text.encode()
