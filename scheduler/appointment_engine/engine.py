@@ -1,10 +1,17 @@
+from datetime import datetime
+
+def validate_slot(slot_time):
+    if slot_time < datetime.now().time():
+        return False
+    return True
+
 def check_availability(doctor, date):
-    return ["10:00 AM", "2:00 PM", "4:00 PM"]
+    return {"slots": ["10:00", "14:00"]}
 
 def book_appointment(data):
-    slots = check_availability(data["doctor"], data["date"])
+    slot = data.get("time")
 
-    if not slots:
-        return {"error": "No slots available"}
+    if not validate_slot(datetime.strptime(slot, "%H:%M").time()):
+        return {"message": "Cannot book past time"}
 
-    return {"slot": slots[0]}
+    return {"message": f"Appointment booked at {slot}"}
