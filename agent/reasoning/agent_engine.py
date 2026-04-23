@@ -30,7 +30,10 @@ Return JSON:
 
     response = model.generate_content(prompt)
 
-    parsed = json.loads(response.text)
+    try:
+        parsed = json.loads(response.text)
+    except:
+        return {"response": "I'm having trouble processing that request"}
 
     tool_result = route_tool(parsed)
 
